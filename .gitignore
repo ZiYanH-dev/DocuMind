@@ -1,0 +1,51 @@
+# ===== 环境配置 =====
+.env
+.env.local
+.env.*.local
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.venv/
+venv/
+
+# ===== Python 工具缓存 =====
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ===== Node / 前端 =====
+node_modules/
+dist/
+*.local
+
+# ===== 日志 =====
+var/
+
+# ===== 数据 / 上传 =====
+*.sqlite3
+*.db
+
+# ===== IDE / 编辑器 =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===== Docker =====
+docker-compose.override.yml
+
+# ===== 系统 =====
+.tmp/
+temp/
+.cache/

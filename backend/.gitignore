@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# 环境变量（含真实密钥，禁止提交）
+.env
+.env.local
+
+# 上传目录（测试/运行时产生）
+uploads/
+
+# 日志目录（运行时产生）
+logs/
+
+# 编辑器/OS
+.idea/
+.vscode/
+.DS_Store
