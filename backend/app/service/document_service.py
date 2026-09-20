@@ -20,6 +20,7 @@ from app.models.document import Document, DocumentChunk
 from app.models.user import User
 from app.repository.chunk_repository import ChunkRepository
 from app.repository.document_repository import DocumentRepository
+from app.retrieval.keyword import invalidate as invalidate_keyword_index
 from app.schemas.document import DocumentListOut, DocumentOut
 from app.utils.document_parser import document_parser
 
@@ -78,7 +79,7 @@ class DocumentService:
         logger.info(
             "upload ok, user_id=%s doc_id=%s title=%s", user.id, document.id, document.title
         )
-        cache.delete_prefix(user_document_list_prefix(user.id))
+        self._invalidate_user(user.id)
         return DocumentOut.model_validate(document)
 
     def list_documents(self, user: User, skip: int, limit: int) -> DocumentListOut:
@@ -112,9 +113,19 @@ class DocumentService:
         if file_path.exists():
             file_path.unlink()
         self._repository.delete(document)
-        cache.delete_prefix(user_document_list_prefix(user.id))
-        cache.delete_prefix(user_retrieval_prefix(user.id))
+        self._invalidate_user(user.id)
         logger.info("document deleted, user_id=%s doc_id=%s", user.id, document_id)
+
+    def _invalidate_user(self, user_id: int) -> None:
+        """文档增删后清掉受影响的缓存。
+
+        文档列表缓存直接过期；按用户前缀清掉检索结果缓存；
+        BM25 索引建在进程内，需要显式失效，否则会继续用旧语料打分。
+        """
+
+        cache.delete_prefix(user_document_list_prefix(user_id))
+        cache.delete_prefix(user_retrieval_prefix(user_id))
+        invalidate_keyword_index(user_id)
 
     def _process_document(self, document: Document) -> None:
         """解析文档 → 分块 → 向量化 → 入库。"""

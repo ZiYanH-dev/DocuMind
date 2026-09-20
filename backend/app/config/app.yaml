@@ -10,6 +10,19 @@ embedding:
 retrieval:
   top_k: 4
   score_threshold: 0.3
+  # 混合召回：向量路与关键词路各自的召回条数
+  vector_recall_k: 10
+  keyword_recall_k: 10
+  keyword_enabled: true
+  # 倒数排名融合常数，越大各名次之间的差距越平缓
+  fusion_k: 60
+  # 查询改写：额外生成几个查询变体参与召回
+  rewrite_enabled: true
+  rewrite_count: 2
+  # 重排：对融合后的候选按相关度重新排序
+  rerank_enabled: true
+  rerank_model: gte-rerank-v2
+  rerank_top_n: 4
 
 parser:
   chunk_size: 800

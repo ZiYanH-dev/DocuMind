@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlparse
 
 import yaml
 from pydantic import field_validator
@@ -23,6 +24,9 @@ def load_ai_config() -> dict:
 
 # AI 配置默认值来源（YAML，进 git）；.env 可作为覆盖项
 _AI = load_ai_config()
+
+# 百炼原生重排接口路径（不属于 OpenAI 兼容协议，需单独拼接）
+RERANK_PATH = "/api/v1/services/rerank/text-rerank/text-rerank"
 
 
 class Settings(BaseSettings):
@@ -101,6 +105,31 @@ class Settings(BaseSettings):
     # ===== 向量检索 =====
     vector_top_k: int = _AI["retrieval"]["top_k"]
     vector_score_threshold: float = _AI["retrieval"]["score_threshold"]
+
+    # ===== 检索增强：混合召回 / 融合 / 重排 / 查询改写 =====
+    keyword_enabled: bool = _AI["retrieval"]["keyword_enabled"]
+    keyword_recall_k: int = _AI["retrieval"]["keyword_recall_k"]
+    vector_recall_k: int = _AI["retrieval"]["vector_recall_k"]
+    fusion_k: int = _AI["retrieval"]["fusion_k"]
+    rewrite_enabled: bool = _AI["retrieval"]["rewrite_enabled"]
+    rewrite_count: int = _AI["retrieval"]["rewrite_count"]
+    rerank_enabled: bool = _AI["retrieval"]["rerank_enabled"]
+    rerank_model: str = _AI["retrieval"]["rerank_model"]
+    rerank_top_n: int = _AI["retrieval"]["rerank_top_n"]
+    rerank_api_key: str | None = None  # 留空则复用 llm_api_key
+
+    @property
+    def rerank_endpoint(self) -> str:
+        """重排接口完整地址：取 LLM 基址的主机，再拼百炼原生路径。"""
+
+        parsed = urlparse(self.llm_base_url)
+        return f"{parsed.scheme}://{parsed.netloc}{RERANK_PATH}"
+
+    @property
+    def effective_rerank_api_key(self) -> str:
+        """实际用于重排的 API Key（缺省复用 LLM 的 Key）。"""
+
+        return self.rerank_api_key or self.llm_api_key
 
     # ===== 文档解析 =====
     upload_dir: str = str(REPO_ROOT / "var" / "uploads")

@@ -1,0 +1,56 @@
+{
+  "name": "香港入境 ID995A 表单字段检索",
+  "description": "标注方式为「文档 id + 分块序号」。术语型查询只有一个正确片段，语义型查询允许有多个等价片段。",
+  "cases": [
+    {
+      "query": "Reference barcode",
+      "relevant": [[11, 3]],
+      "type": "术语"
+    },
+    {
+      "query": "檔案條碼",
+      "relevant": [[11, 3]],
+      "type": "术语"
+    },
+    {
+      "query": "照片尺寸限制 55 乘 45 毫米",
+      "relevant": [[11, 8]],
+      "type": "术语"
+    },
+    {
+      "query": "婚姻狀況 Marital/Relationship status",
+      "relevant": [[11, 10]],
+      "type": "术语"
+    },
+    {
+      "query": "申請人擬在港就讀的資料",
+      "relevant": [[11, 11]],
+      "type": "术语"
+    },
+    {
+      "query": "宿舍 residential hall",
+      "relevant": [[11, 12]],
+      "type": "术语"
+    },
+    {
+      "query": "收 集 個 人 資 料 的 目 的 Statement of Purpose",
+      "relevant": [[11, 44]],
+      "type": "术语"
+    },
+    {
+      "query": "帶了配偶和小孩一起過去，表格哪部分要填",
+      "relevant": [[11, 9], [11, 24], [11, 34]],
+      "type": "语义"
+    },
+    {
+      "query": "要在表格上贴照片的地方在哪",
+      "relevant": [[11, 8]],
+      "type": "语义"
+    },
+    {
+      "query": "声明自己填写的所有资料都真实正確",
+      "relevant": [[11, 2], [11, 14], [11, 23]],
+      "type": "语义"
+    }
+  ]
+}

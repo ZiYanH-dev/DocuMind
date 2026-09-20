@@ -2,6 +2,9 @@
 
 工具通过闭包捕获当前请求的数据库会话与用户 ID，并把结构化检索命中写入
 调用方传入的收集器，供服务层生成可定位到文档与分块序号的引用来源。
+
+检索本身走 app.retrieval 的多路召回链路：查询改写、向量与关键词并行召回、
+倒数排名融合、重排。这里只负责把结果组织成模型可读的文本。
 """
 
 from __future__ import annotations
@@ -12,11 +15,9 @@ from typing import Any
 from langchain_core.tools import tool
 from sqlalchemy.orm import Session
 
-from app.config.embedding_client import embedding_service
 from app.config.settings import settings
-from app.core.cache import RETRIEVAL_TTL_SECONDS, cache, retrieval_key
-from app.repository.chunk_repository import ChunkRepository
 from app.repository.document_repository import DocumentRepository
+from app.retrieval import retrieve
 from app.schemas.chat import SourceInfo
 
 logger = logging.getLogger(__name__)
@@ -32,32 +33,12 @@ def build_tools(
 ) -> list[Any]:
     """根据用户和会话构建工具列表。
 
-    每次请求构建一次，闭包捕获 session 与 user_id，向量检索天然按用户隔离。
+    每次请求构建一次，闭包捕获 session 与 user_id，检索天然按用户隔离。
     传入 hits 时，search_knowledge 会把每次结构化命中追加进去。
     """
 
-    chunk_repo = ChunkRepository(session)
     doc_repo = DocumentRepository(session)
     hit_collector: list[SourceInfo] = hits if hits is not None else []
-
-    def _load_chunks(query: str, top_k: int) -> list[dict[str, object]]:
-        """优先读检索结果缓存，未命中再向量化并查询。"""
-
-        key: str = retrieval_key(user_id, query)
-        cached: Any = cache.get_json(key)
-        if cached is not None:
-            logger.info("retrieval cache hit, user_id=%s query_len=%d", user_id, len(query))
-            return cached
-
-        emb = embedding_service.embed_query(query)
-        results: list[dict[str, object]] = chunk_repo.vector_search(
-            user_id,
-            emb,
-            top_k=top_k,
-            score_threshold=settings.vector_score_threshold,
-        )
-        cache.set_json(key, results, RETRIEVAL_TTL_SECONDS)
-        return results
 
     def _record_hits(results: list[dict[str, object]]) -> None:
         """把检索结果转换成结构化命中，追加到收集器。"""
@@ -86,7 +67,7 @@ def build_tools(
         """
 
         try:
-            results = _load_chunks(query, top_k)
+            results = retrieve(session, user_id, query, top_k=top_k)
 
             if not results:
                 return "知识库中未找到相关内容。"
