@@ -1,0 +1,16 @@
+# AI 超参数（非机密，进 git）。
+# 连接地址 / 模型名 / API Key 属接入配置，放根目录 .env（Makefile 读到 env，读不到 YAML）。
+llm:
+  temperature: 0.7
+  max_tokens: 2048
+
+embedding:
+  dim: 768
+
+retrieval:
+  top_k: 4
+  score_threshold: 0.3
+
+parser:
+  chunk_size: 800
+  chunk_overlap: 100
