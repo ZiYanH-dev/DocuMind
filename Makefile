@@ -1,4 +1,4 @@
-# ===== AI 学习助手 · Makefile =====
+# ===== DocuMind · Makefile =====
 # 底层调用: docker compose / uv / pnpm / ollama
 # 启动方式：
 #   make start   一键启动（Ollama 按需 → Docker → DB → 迁移 → 后端 → 前端）
@@ -21,23 +21,120 @@ EMBEDDING_MODEL ?= nomic-embed-text
 
 $(shell mkdir -p $(LOGS_DIR))
 
-.PHONY: help
+.PHONY: help status be-status fe-status verify
 help:  ## 显示所有可用命令
 	@echo ""
-	@echo "📚 AI 学习助手 · 命令列表"
+	@echo "📚 DocuMind · 命令列表"
 	@echo "============================"
-	@echo "  make start         一键启动（Ollama → Docker → DB → 迁移 → 后端 → 前端）"
-	@echo "  make stop          停止后端和前端（保留 Docker + Ollama）"
-	@echo "  make stop-all      停止全部（后端 + 前端 + Ollama + Docker）"
-	@echo "  make init          首次初始化（装依赖 + 迁移）"
-	@echo "  make up            启动 PostgreSQL + Redis"
-	@echo "  make down          停止并移除容器"
-	@echo "  make db-migrate    执行 Alembic 升级到最新"
-	@echo "  make be-dev        前台启动后端"
-	@echo "  make fe-dev        前台启动前端"
-	@echo "  make clean         清理临时文件"
-	@echo "  make logs          查看 Docker 日志"
 	@echo ""
+	@echo "⭐ 一站式:"
+	@echo "  make start            一键启动（Ollama → Docker → DB → 迁移 → 后端 → 前端）"
+	@echo "  make stop             停止后端和前端（保留 Docker + Ollama）"
+	@echo "  make stop-all         停止全部（后端 + 前端 + Ollama + Docker）"
+	@echo "  make init             首次初始化（装依赖 + 迁移）"
+	@echo "  make status           📊 查看全部服务状态"
+	@echo "  make verify           🔍 一站式质量检查（ruff check + vue-tsc）"
+	@echo ""
+	@echo "🐳 Docker 服务:"
+	@echo "  make up               启动 PostgreSQL + Redis（后台）"
+	@echo "  make down             停止并移除容器"
+	@echo "  make restart          重启 Docker 服务"
+	@echo "  make ps               查看容器状态"
+	@echo "  make logs             查看 Docker 日志（实时 follow）"
+	@echo ""
+	@echo "🗄️  数据库:"
+	@echo "  make db-init          初始化数据库（迁移 + 建表）"
+	@echo "  make db-migrate       执行 Alembic 升级到最新"
+	@echo "  make db-migrate-down  回滚一个版本 (make db-migrate-down v=base 回滚全部)"
+	@echo "  make db-migrate-create 创建新迁移 (make db-migrate-create msg=\"描述\")"
+	@echo "  make db-shell         🚪 进入 PostgreSQL 交互界面"
+	@echo "  make redis-shell      🚪 进入 Redis 交互界面"
+	@echo ""
+	@echo "💻 后端:"
+	@echo "  make be-install       安装后端依赖"
+	@echo "  make be-dev           前台启动后端开发服务器"
+	@echo "  make be-run           后台启动后端（日志: $(LOGS_DIR)/backend.log）"
+	@echo "  make be-status        📋 后端健康检查（HTTP /health + 端口）"
+	@echo "  make be-check         后端代码检查（ruff check + format --check）"
+	@echo "  make be-format        后端代码自动格式化（ruff format）"
+	@echo "  make be-test          运行后端测试（pytest）"
+	@echo "  make be-shell         进入后端 Python 环境"
+	@echo "  make be-logs          📋 查看后端运行日志（tail -f）"
+	@echo ""
+	@echo "🎨 前端:"
+	@echo "  make fe-install       安装前端依赖"
+	@echo "  make fe-dev           前台启动前端开发服务器"
+	@echo "  make fe-run           后台启动前端（日志: $(LOGS_DIR)/frontend.log）"
+	@echo "  make fe-status        📋 前端运行状态（端口检查）"
+	@echo "  make fe-build         构建生产版本"
+	@echo "  make fe-preview       预览生产构建"
+	@echo "  make fe-check         前端类型检查（vue-tsc --noEmit）"
+	@echo "  make fe-logs          📋 查看前端运行日志（tail -f）"
+	@echo ""
+	@echo "🧠 Ollama:"
+	@echo "  make ollama-status    查看 Ollama 运行状态"
+	@echo "  make ollama-pull      下载嵌入模型 ($(EMBEDDING_MODEL))"
+	@echo ""
+	@echo "🧪 测试:"
+	@echo "  make be-test          后端单元测试（pytest）"
+	@echo ""
+	@echo "🧹 工具:"
+	@echo "  make clean            清理临时文件"
+	@echo "  make lint             同 be-check（快捷）"
+
+status: be-status fe-status  ## 📊 查看全部服务状态
+	@printf "🧠 Ollama  :"
+	@if curl -sf http://127.0.0.1:11434 > /dev/null 2>&1; then \
+		echo " ✅ 运行中 (port 11434)"; \
+	else \
+		echo " ❌ 未运行"; \
+	fi
+	@echo ""
+	@echo "🐳 Docker 容器:"
+	@if command -v docker > /dev/null 2>&1 && docker info > /dev/null 2>&1; then \
+		$(DOCKER_COMPOSE) ps 2>/dev/null || echo "   ❌ docker compose 未就绪"; \
+	else \
+		echo "   ❌ Docker daemon 未运行"; \
+	fi
+	@echo ""
+
+be-status:  ## 💻 后端 API 健康检查（HTTP /health + 端口）
+	@printf "💻 后端 API :"
+	@if curl -sf http://127.0.0.1:$(BACKEND_PORT)/health > /dev/null 2>&1; then \
+		echo " ✅ 健康 (port $(BACKEND_PORT), /health OK)"; \
+	elif lsof -ti :$(BACKEND_PORT) -sTCP:LISTEN >/dev/null 2>&1; then \
+		echo " ⚠️  端口监听但 /health 未响应 (port $(BACKEND_PORT))"; \
+	else \
+		echo " ❌ 未运行"; \
+	fi
+
+fe-status:  ## 🎨 前端开发服务器检查（端口）
+	@printf "🎨 前端页面 :"
+	@if lsof -ti :$(FRONTEND_PORT) -sTCP:LISTEN >/dev/null 2>&1; then \
+		echo " ✅ 运行中 (port $(FRONTEND_PORT))"; \
+	else \
+		echo " ❌ 未运行"; \
+	fi
+
+ollama-status:  ## 🧠 Ollama 运行状态（独立查看用）
+	@echo "📊 Ollama 状态:"
+	@if curl -sf http://127.0.0.1:11434 > /dev/null 2>&1; then \
+		echo "   服务: ✅ 运行中 (port 11434)"; \
+		if curl -sf http://127.0.0.1:11434/api/tags -o /tmp/.ollama_tags.json 2>/dev/null; then \
+			if grep -q "$(EMBEDDING_MODEL)" /tmp/.ollama_tags.json 2>/dev/null; then \
+				echo "   模型: ✅ $(EMBEDDING_MODEL) 已就绪"; \
+			else \
+				echo "   模型: ⚠️  $(EMBEDDING_MODEL) 未下载"; \
+			fi; \
+			rm -f /tmp/.ollama_tags.json; \
+		fi; \
+	else \
+		echo "   服务: ❌ 未运行"; \
+	fi
+
+verify: be-check fe-check  ## 🔍 一站式质量检查（ruff + vue-tsc）
+	@echo ""
+	@echo "✅ 全部检查通过"
 
 # ===== 一键启动 =====
 .PHONY: start stop stop-all
@@ -67,7 +164,7 @@ stop-all: stop ollama-down down  ## 停止全部（后端 + 前端 + Ollama + Do
 # ===== Ollama 自检（按需：仅当 Embedding 指向本地 Ollama 时才检查）=====
 .PHONY: ensure-ollama ollama-down ollama-status ollama-pull
 
-ensure-ollama:
+ensure-ollama:  ## 🦙 确保 Ollama 就绪（按需自检 / 缺失时自动启动）
 	@if ! echo "$(EMBEDDING_BASE_URL)" | grep -qE "localhost|127\.0\.0\.1"; then \
 		echo "🦙 Embedding 使用云端服务（非 localhost），跳过 Ollama 检查"; \
 	elif curl -sf http://127.0.0.1:11434 > /dev/null 2>&1; then \
@@ -117,21 +214,13 @@ ollama-down:  ## 停止 Ollama 服务
 	@pkill -f "ollama serve" 2>/dev/null || true
 	@echo "✅ Ollama 已停止"
 
-ollama-status:  ## 查看 Ollama 状态
-	@echo "📊 Ollama 状态:"
-	@if curl -s http://localhost:11434 > /dev/null 2>&1; then \
-		echo "   服务: ✅ 运行中 (port 11434)"; \
-	else \
-		echo "   服务: ❌ 未运行"; \
-	fi
-
 ollama-pull:  ## 下载 Ollama 模型
 	ollama pull $(EMBEDDING_MODEL)
 
 # ===== Docker =====
 .PHONY: ensure-docker up down restart ps logs wait-postgres-ready
 
-ensure-docker:
+ensure-docker:  ## 🐳 确保 Docker 就绪（未运行则自动启动）
 	@echo "🐳 检查 Docker..."
 	@if ! command -v docker > /dev/null 2>&1; then \
 		echo "   ❌ docker 命令未找到，请先安装 Docker Desktop"; \
@@ -173,7 +262,7 @@ ps:  ## 查看容器状态
 logs:  ## 查看 Docker 日志
 	$(DOCKER_COMPOSE) logs -f
 
-wait-postgres-ready:
+wait-postgres-ready:  ## 🗄️ 轮询等待 PostgreSQL 就绪
 	@echo "🗄️  等待 PostgreSQL 就绪..."
 	@ready=0; \
 	for i in $$(seq 1 30); do \
@@ -190,7 +279,7 @@ wait-postgres-ready:
 	fi
 
 # ===== 后端 =====
-.PHONY: be-install be-dev be-check be-shell be-run
+.PHONY: be-install be-dev be-check be-format be-test e2e be-shell be-run be-logs
 
 be-install:  ## 安装后端依赖
 	cd $(BACKEND_DIR) && $(UV) sync
@@ -198,8 +287,18 @@ be-install:  ## 安装后端依赖
 be-dev:  ## 前台启动后端开发服务器
 	cd $(BACKEND_DIR) && $(UV) run uvicorn app.main:app --reload --port $(BACKEND_PORT)
 
-be-check:  ## 后端代码检查（ruff）
-	cd $(BACKEND_DIR) && $(UV) run ruff check app/
+be-check:  ## 后端代码检查（ruff check + format 校验，覆盖 app/tests/scripts）
+	cd $(BACKEND_DIR) && $(UV) run ruff check app/ tests/ scripts/
+	cd $(BACKEND_DIR) && $(UV) run ruff format --check app/ tests/ scripts/
+
+be-format:  ## 后端代码自动格式化（ruff format）
+	cd $(BACKEND_DIR) && $(UV) run ruff format app/ tests/ scripts/
+
+be-test:  ## 运行后端测试（需 Docker 已启动 + 存在 ai_learning_test 库）
+	cd $(BACKEND_DIR) && $(UV) run pytest
+
+e2e:  ## 运行真实 HTTP 端到端验证（需 make start 已把服务拉起）
+	cd $(BACKEND_DIR) && $(UV) run python scripts/http_e2e.py
 
 be-shell:  ## 进入后端 Python 环境
 	cd $(BACKEND_DIR) && $(UV) run python
@@ -212,8 +311,15 @@ be-run:  ## 后台启动后端（日志: logs/backend.log）
 		echo "✅ 后端已启动 (port $(BACKEND_PORT))"; \
 	fi
 
+be-logs:  ## 📋 查看后端运行日志（实时 follow）
+	@if [ ! -f $(LOGS_DIR)/backend.log ]; then \
+		echo "❌ 后端日志文件不存在: $(LOGS_DIR)/backend.log（需先 make be-run）"; \
+	else \
+		tail -f $(LOGS_DIR)/backend.log; \
+	fi
+
 # ===== 数据库迁移 =====
-.PHONY: db-migrate db-migrate-down db-migrate-create db-init
+.PHONY: db-migrate db-migrate-down db-migrate-create db-init db-shell redis-shell
 
 db-migrate:  ## 执行 Alembic 升级到最新
 	cd $(BACKEND_DIR) && $(UV) run alembic upgrade head
@@ -227,8 +333,14 @@ db-migrate-create:  ## 创建新迁移 (make db-migrate-create msg="描述")
 
 db-init: up wait-postgres-ready db-migrate  ## 初始化数据库（迁移 + 建表）
 
+db-shell: ensure-docker  ## 🚪 进入 PostgreSQL 交互界面
+	$(DOCKER_COMPOSE) exec postgres psql -U $(POSTGRES_USER) -d $(POSTGRES_USER)
+
+redis-shell: ensure-docker  ## 🚪 进入 Redis 交互界面
+	$(DOCKER_COMPOSE) exec redis redis-cli
+
 # ===== 前端 =====
-.PHONY: fe-install fe-dev fe-build fe-preview fe-run
+.PHONY: fe-install fe-dev fe-build fe-preview fe-run fe-check fe-logs
 
 fe-install:  ## 安装前端依赖
 	cd $(FRONTEND_DIR) && $(PNPM) install
@@ -248,6 +360,16 @@ fe-run:  ## 后台启动前端（日志: logs/frontend.log）
 	else \
 		cd $(FRONTEND_DIR) && nohup $(PNPM) dev --port $(FRONTEND_PORT) > ../$(LOGS_DIR)/frontend.log 2>&1 & \
 		echo "✅ 前端已启动 (port $(FRONTEND_PORT))"; \
+	fi
+
+fe-check:  ## 前端类型检查（vue-tsc --noEmit）
+	cd $(FRONTEND_DIR) && $(PNPM) exec vue-tsc --noEmit
+
+fe-logs:  ## 📋 查看前端运行日志（实时 follow）
+	@if [ ! -f $(LOGS_DIR)/frontend.log ]; then \
+		echo "❌ 前端日志文件不存在: $(LOGS_DIR)/frontend.log（需先 make fe-run）"; \
+	else \
+		tail -f $(LOGS_DIR)/frontend.log; \
 	fi
 
 # ===== 工具 =====
