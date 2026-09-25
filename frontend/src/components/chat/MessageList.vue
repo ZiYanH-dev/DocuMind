@@ -28,7 +28,7 @@ watch(() => props.messages, scrollToBottom, { deep: true })
 <template>
   <div ref="containerRef" class="message-list">
     <div v-if="messages.length === 0" class="welcome">
-      <h2>👋 欢迎使用 AI 学习助手</h2>
+      <h2>👋 欢迎使用 DocuMind</h2>
       <p>上传文档到知识库，然后就可以基于文档内容进行问答了！</p>
     </div>
 

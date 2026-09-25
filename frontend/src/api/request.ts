@@ -14,6 +14,19 @@ interface ApiResponse<T = unknown> {
   data: T | null
 }
 
+/** 后端错误响应体：优先取统一信封的 message，detail 作为兼容兜底 */
+interface ApiErrorBody {
+  code?: number
+  message?: string
+  detail?: string
+}
+
+/** 登录 / 注册接口自身的 401 表示凭证错误，不能当成会话过期 */
+function isAuthEndpoint(url: string | undefined): boolean {
+  if (!url) return false
+  return url.includes('/auth/login') || url.includes('/auth/register')
+}
+
 /** 创建 Axios 实例 */
 const request: AxiosInstance = axios.create({
   baseURL: '/api/v1',
@@ -52,10 +65,15 @@ request.interceptors.response.use(
   (error: unknown) => {
     if (axios.isAxiosError(error)) {
       const status: number | undefined = error.response?.status
-      const message: string = error.response?.data?.message || error.message
+      const body = error.response?.data as ApiErrorBody | undefined
+      const message: string = body?.message || body?.detail || error.message
 
       switch (status) {
         case 401:
+          if (isAuthEndpoint(error.config?.url)) {
+            ElMessage.error(message || '用户名或密码错误')
+            break
+          }
           ElMessage.error('登录已过期，请重新登录')
           localStorage.removeItem('access_token')
           router.push('/login')

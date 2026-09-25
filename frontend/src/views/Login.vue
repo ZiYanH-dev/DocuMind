@@ -82,7 +82,7 @@ async function handleSubmit(): Promise<void> {
 <template>
   <div class="login-container">
     <div class="login-box">
-      <h1 class="title">AI 学习助手</h1>
+      <h1 class="title">DocuMind</h1>
       <p class="subtitle">{{ isLogin ? '欢迎回来！' : '创建新账号' }}</p>
 
       <el-form
@@ -94,11 +94,19 @@ async function handleSubmit(): Promise<void> {
         @submit.prevent="handleSubmit"
       >
         <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" placeholder="请输入用户名" />
+          <el-input
+            v-model="form.username"
+            placeholder="请输入用户名"
+            @keyup.enter="handleSubmit"
+          />
         </el-form-item>
 
         <el-form-item v-if="!isLogin" label="邮箱" prop="email">
-          <el-input v-model="form.email" placeholder="请输入邮箱（可选）" />
+          <el-input
+            v-model="form.email"
+            placeholder="请输入邮箱（可选）"
+            @keyup.enter="handleSubmit"
+          />
         </el-form-item>
 
         <el-form-item label="密码" prop="password">
@@ -107,6 +115,7 @@ async function handleSubmit(): Promise<void> {
             type="password"
             placeholder="请输入密码"
             show-password
+            @keyup.enter="handleSubmit"
           />
         </el-form-item>
 

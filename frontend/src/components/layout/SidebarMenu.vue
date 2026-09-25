@@ -15,7 +15,7 @@ const menuItems = [
   <el-aside width="220px" class="aside">
     <div class="logo">
       <span class="logo-icon">🤖</span>
-      <span class="logo-text">AI 学习助手</span>
+      <span class="logo-text">DocuMind</span>
     </div>
 
     <el-menu
