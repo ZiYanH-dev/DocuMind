@@ -1,6 +1,6 @@
 # 文档导航
 
-本目录收录 AI 智能学习助手的设计与开发文档，按"需求 → 数据库 → 接口 → 架构 → 前端"流程组织。
+本目录收录 DocuMind 的设计与开发文档，按"需求 → 数据库 → 接口 → 架构 → 前端"流程组织。
 
 | 文档 | 内容 |
 | --- | --- |
@@ -10,9 +10,10 @@
 | [api-spec.md](./api-spec.md) | API 接口规范：通用约定（鉴权 / 统一响应 / 错误）、全部接口请求响应、SSE 事件格式、状态码 |
 | [architecture.md](./architecture.md) | 架构与分层规范：五层调用、目录结构、调用链、编码规范 Checklist、关键技术点 |
 | [frontend-design.md](./frontend-design.md) | 前端 UI 设计：页面路由、核心交互、SSE 消费、原型线框、目录建议、对接要点 |
-| [getting-started.md](./getting-started.md) | 环境准备与启动（后端）：Docker 基础设施、环境变量、UV 启动、迁移 |
+| [getting-started.md](./getting-started.md) | 环境准备与开发启动：Makefile 一键命令、配置分组（.env 接入 / app.yaml 超参）、手动分步 |
+| [deployment.md](./deployment.md) | 生产部署：Dockerfile + compose.prod + nginx，一条命令起全栈 |
 
-> 说明：根目录 `README.md`（项目级总览）计划在项目完成后统一编写，开发阶段运行指南见 [`getting-started.md`](./getting-started.md)。
+> 说明：根目录 `README.md`（项目级总览）计划在项目完成后统一编写，开发启动见 [`getting-started.md`](./getting-started.md)，生产部署见 [`deployment.md`](./deployment.md)。
 
 ## 阅读顺序建议
 
