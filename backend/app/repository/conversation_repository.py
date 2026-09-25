@@ -52,7 +52,9 @@ class ConversationRepository:
 
         return (
             self._db.scalar(
-                select(func.count()).select_from(Conversation).where(Conversation.user_id == user_id)
+                select(func.count())
+                .select_from(Conversation)
+                .where(Conversation.user_id == user_id)
             )
             or 0
         )
@@ -87,7 +89,9 @@ class MessageRepository:
     ) -> Message:
         """创建消息。"""
 
-        message = Message(conversation_id=conversation_id, role=role, content=content, sources=sources)
+        message = Message(
+            conversation_id=conversation_id, role=role, content=content, sources=sources
+        )
 
         self._db.add(message)
         self._db.commit()

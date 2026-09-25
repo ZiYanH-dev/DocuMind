@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
@@ -35,9 +36,13 @@ class DocumentService:
         self._chunk_repository: ChunkRepository = ChunkRepository(db)
 
     def upload(self, user: User, file: UploadFile) -> DocumentOut:
-        """上传文档并异步处理（解析→分块→向量化）。"""
+        """上传文档并同步处理（解析→分块→向量化）。
 
-        file_name: str = file.filename or "unnamed"
+        当前为同步处理，请求会一直阻塞到向量化完成；大文件下这是主要耗时点。
+        """
+
+        # 只取基名，避免客户端用 ../ 之类的文件名把文件写到上传目录之外
+        file_name: str = Path(file.filename or "unnamed").name
         file_type: str = file_name.rsplit(".", 1)[-1].lower() if "." in file_name else ""
         if file_type not in ALLOWED_FILE_TYPES:
             raise HTTPException(
@@ -54,7 +59,9 @@ class DocumentService:
 
         upload_dir: Path = Path(settings.upload_dir)
         upload_dir.mkdir(parents=True, exist_ok=True)
-        file_path: Path = upload_dir / f"{user.id}_{file_name}"
+        # 落盘名带上随机段：同名文件重复上传时各占一个文件，
+        # 否则后一次上传会覆盖前一次的源文件，删除其中一条文档还会连带删掉另一条的
+        file_path: Path = upload_dir / f"{user.id}_{uuid4().hex[:8]}_{file_name}"
         file_path.write_bytes(content)
 
         document: Document = self._repository.create(

@@ -45,7 +45,7 @@ def test_document_upload_and_list(client: TestClient) -> None:
     token: str = _register_and_login(client)
     headers: dict[str, str] = {"Authorization": f"Bearer {token}"}
 
-    content: bytes = "RAG 是检索增强生成的简称，用于结合外部知识库进行问答。".encode("utf-8")
+    content: bytes = "RAG 是检索增强生成的简称，用于结合外部知识库进行问答。".encode()
     files: dict[str, tuple[str, io.BytesIO, str]] = {
         "file": ("rag.txt", io.BytesIO(content), "text/plain")
     }
@@ -66,7 +66,7 @@ def test_document_delete(client: TestClient) -> None:
     token: str = _register_and_login(client)
     headers: dict[str, str] = {"Authorization": f"Bearer {token}"}
 
-    content: bytes = "临时文档内容".encode("utf-8")
+    content: bytes = "临时文档内容".encode()
     files: dict[str, tuple[str, io.BytesIO, str]] = {
         "file": ("temp.txt", io.BytesIO(content), "text/plain")
     }

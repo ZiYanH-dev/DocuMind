@@ -22,13 +22,13 @@ class ConversationService:
         self._repository: ConversationRepository = ConversationRepository(db)
         self._message_repository: MessageRepository = MessageRepository(db)
 
-    def create_conversation(self, user: User, conversation_in: ConversationCreate) -> ConversationOut:
+    def create_conversation(
+        self, user: User, conversation_in: ConversationCreate
+    ) -> ConversationOut:
         """创建会话。"""
 
         conversation: Conversation = self._repository.create(user.id, conversation_in.title)
-        logger.info(
-            "conversation created, user_id=%s conv_id=%s", user.id, conversation.id
-        )
+        logger.info("conversation created, user_id=%s conv_id=%s", user.id, conversation.id)
         return ConversationOut.model_validate(conversation)
 
     def list_conversations(self, user: User, skip: int, limit: int) -> ConversationListOut:
@@ -44,21 +44,23 @@ class ConversationService:
     def delete_conversation(self, user: User, conversation_id: int) -> None:
         """删除会话。"""
 
-        conversation: Conversation | None = self._repository.get_by_user_id(user.id, conversation_id)
+        conversation: Conversation | None = self._repository.get_by_user_id(
+            user.id, conversation_id
+        )
         if conversation is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="会话不存在",
             )
         self._repository.delete(conversation)
-        logger.info(
-            "conversation deleted, user_id=%s conv_id=%s", user.id, conversation_id
-        )
+        logger.info("conversation deleted, user_id=%s conv_id=%s", user.id, conversation_id)
 
     def get_messages(self, user: User, conversation_id: int) -> list[MessageOut]:
         """查询会话消息历史。"""
 
-        conversation: Conversation | None = self._repository.get_by_user_id(user.id, conversation_id)
+        conversation: Conversation | None = self._repository.get_by_user_id(
+            user.id, conversation_id
+        )
         if conversation is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

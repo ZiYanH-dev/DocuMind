@@ -27,6 +27,11 @@ logger = logging.getLogger(__name__)
 
 HISTORY_LIMIT: int = 10
 
+# create_agent 生成的图里，主回答由 "model" 节点产出；工具在 "tools" 节点内执行。
+# 工具内部自己发起的 LLM 调用（如 search_knowledge 里的查询改写）同样会以
+# messages 事件流出，必须按节点名剔除，否则中间产物会被当成回答推给前端。
+ANSWER_NODE: str = "model"
+
 
 class ChatService:
     """问答业务逻辑（Agent 模式）。"""
@@ -53,9 +58,7 @@ class ChatService:
         conversation: Conversation = self._get_or_create_conversation(user, chat_in.conversation_id)
         is_new: bool = chat_in.conversation_id is None
 
-        logger.info(
-            "chat start, user_id=%s conv_id=%s", user.id, conversation.id
-        )
+        logger.info("chat start, user_id=%s conv_id=%s", user.id, conversation.id)
 
         # 1. 先取历史，此时本轮提问尚未落库，避免历史里出现重复的当前提问
         history_rows: list[dict[str, str]] = self._load_history_rows(conversation.id)
@@ -79,6 +82,7 @@ class ChatService:
         # 5. Agent 流式执行（混合模式：updates 拿工具轨迹 + messages 拿 token）
         answer_parts: list[str] = []
         tool_calls: list[str] = []
+        seen_nodes: set[str] = set()
         yield {"type": "conversation_id", "content": conversation.id}
 
         for mode, event in bundle.agent.stream(
@@ -88,13 +92,19 @@ class ChatService:
             if mode == "updates":
                 self._collect_tool_names(event, tool_calls)
             elif mode == "messages":
-                chunk = self._extract_token(event)
+                chunk = self._extract_token(event, seen_nodes)
                 if chunk:
                     answer_parts.append(chunk)
                     yield {"type": "token", "content": chunk}
 
         # 6. 保存 assistant 消息 + 生成精确引用来源
         answer: str = "".join(answer_parts)
+        if not answer:
+            logger.warning(
+                "chat streamed no token, conv_id=%s nodes=%s",
+                conversation.id,
+                sorted(seen_nodes),
+            )
         sources: list[SourceInfo] = self._dedup_sources(bundle.retrieved_hits)
 
         self._message_repository.create(
@@ -178,10 +188,22 @@ class ChatService:
                     tool_calls.append(getattr(msg, "name", "") or "unknown")
 
     @staticmethod
-    def _extract_token(event: tuple) -> str | None:
-        """从 messages 事件中提取 AIMessage/AIMessageChunk 的 token chunk。"""
+    def _extract_token(event: tuple[Any, dict[str, Any]], seen_nodes: set[str]) -> str | None:
+        """从 messages 事件中提取 token chunk，只保留主回答节点的输出。
 
-        msg, _metadata = event
+        Agent 图内的工具会自己调用 LLM（例如检索前的查询改写），这些调用同样
+        以 messages 事件流出。若只按消息类型过滤，工具内部的原始输出会被当成
+        回答推给前端，表现为回答开头多出一段 ``​```json [...]`` 中间产物。
+        """
+
+        msg, metadata = event
+
+        node: str | None = metadata.get("langgraph_node")
+        if node is not None:
+            seen_nodes.add(node)
+            if node != ANSWER_NODE:
+                return None
+
         is_aimessage = isinstance(msg, (AIMessage, AIMessageChunk))
         if (
             is_aimessage

@@ -37,7 +37,7 @@ def _stub_embeddings(monkeypatch) -> None:
     monkeypatch.setattr(_EmbeddingService, "embed_texts", _fake_embed_texts)
 
 
-from app.core.deps import get_db
+from app.core.deps import get_db  # noqa: E402 —— 必须在设置环境变量之后再导入
 
 TEST_DATABASE_URL: str = os.environ["DATABASE_URL"]
 ENGINE = create_engine(TEST_DATABASE_URL)

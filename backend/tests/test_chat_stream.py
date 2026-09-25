@@ -13,7 +13,9 @@ from __future__ import annotations
 import json
 
 from fastapi.testclient import TestClient
+from langchain_core.messages import AIMessageChunk, ToolMessage
 
+from app.agent.agent import ChatAgentBundle
 from app.service.chat_service import ChatService
 
 
@@ -100,3 +102,72 @@ def test_chat_stream_keeps_going_without_sources(client: TestClient, monkeypatch
 
     kinds: list[str] = [str(e["type"]) for e in events]
     assert kinds == ["conversation_id", "token", "done"], kinds
+
+
+class _StubAgent:
+    """按真实事件顺序回放一次 Agent 执行。
+
+    其中 tools 节点夹带了查询改写的原始 JSON 输出 —— 这是工具内部自己发起的
+    LLM 调用，同样会以 messages 事件流出，必须被服务层按节点名剔除。
+    """
+
+    def stream(self, _inputs: object, stream_mode: object = None):
+        yield ("messages", (AIMessageChunk(content=""), {"langgraph_node": "model"}))
+        yield ("messages", (AIMessageChunk(content="```json\n[\n"), {"langgraph_node": "tools"}))
+        yield (
+            "messages",
+            (
+                AIMessageChunk(content='    "线程与进程的差异"\n]\n```'),
+                {"langgraph_node": "tools"},
+            ),
+        )
+        yield (
+            "updates",
+            {
+                "tools": {
+                    "messages": [
+                        ToolMessage(
+                            content="检索结果", tool_call_id="call_1", name="search_knowledge"
+                        )
+                    ]
+                }
+            },
+        )
+        yield ("messages", (AIMessageChunk(content="线程是"), {"langgraph_node": "model"}))
+        yield (
+            "messages",
+            (AIMessageChunk(content=" CPU 调度的基本单位。"), {"langgraph_node": "model"}),
+        )
+
+
+def test_chat_stream_drops_tool_node_llm_output(client: TestClient, monkeypatch) -> None:
+    """工具节点内部的 LLM 输出（如查询改写的 JSON）不得混进回答 token。
+
+    回归背景：search_knowledge 工具内部会调用 LLM 做查询改写，而
+    stream_mode="messages" 会捕获图内所有 LLM 的 token。若只按消息类型过滤，
+    改写结果会以 ```json [...] 的形式出现在回答开头，并被一起落库。
+    """
+
+    monkeypatch.setattr(
+        "app.service.chat_service.create_chat_agent",
+        lambda _session, _user_id: ChatAgentBundle(agent=_StubAgent(), retrieved_hits=[]),
+    )
+
+    token: str = _register_and_login(client)
+    headers: dict[str, str] = {"Authorization": f"Bearer {token}"}
+
+    resp = client.post("/api/v1/chat", headers=headers, json={"content": "线程是什么"})
+    assert resp.status_code == 200
+
+    events: list[dict] = []
+    for line in resp.text.splitlines():
+        if line.startswith("data: "):
+            events.append(json.loads(line[6:]))
+
+    answer: str = "".join(str(e["content"]) for e in events if e["type"] == "token")
+    assert answer == "线程是 CPU 调度的基本单位。", answer
+    assert "json" not in answer
+    assert "改写" not in answer
+
+    # done 必须照样到达，工具轨迹也不能因为过滤而丢失
+    assert events[-1]["type"] == "done"

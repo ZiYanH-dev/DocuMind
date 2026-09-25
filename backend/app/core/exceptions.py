@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
+from starlette.exceptions import HTTPException
 
 
 class AppError(Exception):
@@ -18,6 +19,22 @@ class AppError(Exception):
 
 def register_exception_handlers(app: FastAPI) -> None:
     """注册全局异常处理器。"""
+
+    @app.exception_handler(HTTPException)
+    async def handle_http_exception(_, exc: HTTPException) -> JSONResponse:
+        """把 HTTPException 也纳入统一信封，HTTP 状态码保持原样。
+
+        路由层与鉴权依赖大量使用 HTTPException（400 / 401 / 404）。若不接管，
+        FastAPI 默认返回 {"detail": ...}，前端读不到 message 字段，只能退化成
+        axios 的 "Request failed with status code 400"，真实原因全部丢失。
+        业务码直接取 HTTP 状态码，前端只需判断 code != 0。
+        """
+
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"code": exc.status_code, "message": str(exc.detail), "data": None},
+            headers=getattr(exc, "headers", None),
+        )
 
     @app.exception_handler(AppError)
     async def handle_app_error(_, exc: AppError) -> JSONResponse:

@@ -46,11 +46,7 @@ def _parse_queries(raw: str) -> list[str]:
     if not isinstance(parsed, list):
         return []
 
-    return [
-        item.strip()
-        for item in parsed
-        if isinstance(item, str) and item.strip()
-    ]
+    return [item.strip() for item in parsed if isinstance(item, str) and item.strip()]
 
 
 def rewrite_queries(question: str, count: int) -> list[str]:

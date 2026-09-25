@@ -1,7 +1,7 @@
 [project]
 name = "ai-learning-backend"
 version = "0.1.0"
-description = "AI 智能学习助手 - 基于知识库的智能问答系统"
+description = "DocuMind - 基于个人知识库的 RAG 智能问答系统"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.111.0",

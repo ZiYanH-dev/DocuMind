@@ -66,7 +66,12 @@ class DocumentRepository:
     def count_by_user_id(self, user_id: int) -> int:
         """统计用户的文档数量。"""
 
-        return self._db.scalar(select(func.count()).select_from(Document).where(Document.user_id == user_id)) or 0
+        return (
+            self._db.scalar(
+                select(func.count()).select_from(Document).where(Document.user_id == user_id)
+            )
+            or 0
+        )
 
     def count_chunks(self, document_id: int) -> int:
         """统计某个文档的分块数量。"""
@@ -80,7 +85,9 @@ class DocumentRepository:
             or 0
         )
 
-    def update_status(self, document_id: int, status: str, error_message: str | None = None) -> None:
+    def update_status(
+        self, document_id: int, status: str, error_message: str | None = None
+    ) -> None:
         """更新文档处理状态。"""
 
         document = self._db.get(Document, document_id)

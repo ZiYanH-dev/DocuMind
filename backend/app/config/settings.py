@@ -22,6 +22,7 @@ def load_ai_config() -> dict:
         data = yaml.safe_load(f) or {}
     return data
 
+
 # AI 配置默认值来源（YAML，进 git）；.env 可作为覆盖项
 _AI = load_ai_config()
 
@@ -40,7 +41,7 @@ class Settings(BaseSettings):
     )
 
     # ===== 应用 =====
-    app_name: str = "AI Learning Assistant"
+    app_name: str = "DocuMind"
     app_env: str = "development"
     app_debug: bool = True
     secret_key: str = "change-me-to-a-random-secret-key"
@@ -175,11 +176,7 @@ class Settings(BaseSettings):
         """CORS 允许的域名列表（缺省由前端端口派生）。"""
 
         if self.cors_origins.strip():
-            return [
-                origin.strip()
-                for origin in self.cors_origins.split(",")
-                if origin.strip()
-            ]
+            return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
         return [
             f"http://localhost:{self.frontend_port}",
             f"http://127.0.0.1:{self.frontend_port}",

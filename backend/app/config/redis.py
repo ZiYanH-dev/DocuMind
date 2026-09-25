@@ -6,9 +6,7 @@ import redis
 
 from app.config.settings import settings
 
-redis_client = redis.Redis.from_url(
-    settings.resolved_redis_url, decode_responses=True
-)
+redis_client = redis.Redis.from_url(settings.resolved_redis_url, decode_responses=True)
 
 
 def get_redis() -> Generator[redis.Redis, None, None]:

@@ -38,8 +38,14 @@ CASES_PATH = Path(__file__).resolve().parent / "retrieval_eval_cases.json"
 # 逐级打开的检索能力，用于看出每一档各自带来多少提升
 CONFIGS: list[tuple[str, dict[str, Any]]] = [
     ("纯向量检索", {"keyword_enabled": False, "rerank_enabled": False, "rewrite_enabled": False}),
-    ("关键词 + 向量 混合召回", {"keyword_enabled": True, "rerank_enabled": False, "rewrite_enabled": False}),
-    ("混合召回 + Rerank 重排", {"keyword_enabled": True, "rerank_enabled": True, "rewrite_enabled": False}),
+    (
+        "关键词 + 向量 混合召回",
+        {"keyword_enabled": True, "rerank_enabled": False, "rewrite_enabled": False},
+    ),
+    (
+        "混合召回 + Rerank 重排",
+        {"keyword_enabled": True, "rerank_enabled": True, "rewrite_enabled": False},
+    ),
     (
         "混合召回 + 重排 + 查询改写",
         {"keyword_enabled": True, "rerank_enabled": True, "rewrite_enabled": True},

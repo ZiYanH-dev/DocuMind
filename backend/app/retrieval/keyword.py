@@ -64,9 +64,7 @@ class KeywordRetriever:
         self._load_fingerprint = load_fingerprint
         self._load_chunks = load_chunks
 
-    def _get_index(
-        self, user_id: int
-    ) -> tuple[BM25Okapi, list[dict[str, object]]] | None:
+    def _get_index(self, user_id: int) -> tuple[BM25Okapi, list[dict[str, object]]] | None:
         """取该用户的 BM25 索引，语料发生变化时重建。"""
 
         fingerprint = self._load_fingerprint(user_id)

@@ -16,9 +16,7 @@ from app.core.middleware import register_middleware
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     """应用生命周期：启动与关停日志。"""
 
-    logger.info(
-        "Starting %s v%s (env=%s)", settings.app_name, "0.1.0", settings.app_env
-    )
+    logger.info("Starting %s v%s (env=%s)", settings.app_name, "0.1.0", settings.app_env)
     yield
     logger.info("Shutting down %s", settings.app_name)
 
@@ -26,7 +24,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
-    description="AI 智能学习助手 - 基于知识库的智能问答系统",
+    description="DocuMind - 基于个人知识库的 RAG 智能问答系统",
     debug=settings.app_debug,
     lifespan=lifespan,
 )
