@@ -49,3 +49,6 @@ docker-compose.override.yml
 .tmp/
 temp/
 .cache/
+
+# ===== 面试问题库（个人求职资料，不随仓库分发）=====
+.Interview_QA/
