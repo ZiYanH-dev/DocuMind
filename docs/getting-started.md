@@ -37,7 +37,7 @@ cp .env.example .env
 | `APP_DEBUG` | 调试开关（控制 SQL echo、日志级别） | `true` |
 | `SECRET_KEY` | JWT 签名密钥，**生产必须改** | `change-me-...` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | 令牌有效期 | `1440` |
-| `POSTGRES_HOST/PORT/USER/PASSWORD/DB` | 数据库（分字段，URL 由 `settings.py` 拼接） | `localhost/5433/ai_learning/ai_learning/ai_learning` |
+| `POSTGRES_HOST/PORT/USER/PASSWORD/DB` | 数据库（分字段，URL 由 `settings.py` 拼接） | `localhost/5433/documind/documind/documind` |
 | `REDIS_HOST/PORT/DB` | Redis（分字段） | `localhost/6380/0` |
 | `LLM_API_KEY` | 大模型 Key（OpenAI 兼容） | `sk-your-api-key` |
 | `LLM_BASE_URL` | 大模型基址 | 见 `.env.example` |

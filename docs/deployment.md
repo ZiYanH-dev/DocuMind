@@ -54,9 +54,9 @@ LLM_BASE_URL=https://.../v1
 LLM_MODEL=qwen-max
 
 # 可选（有默认值兜底）
-POSTGRES_USER=ai_learning
+POSTGRES_USER=documind
 POSTGRES_PASSWORD=<强密码>
-POSTGRES_DB=ai_learning
+POSTGRES_DB=documind
 EMBEDDING_BASE_URL=...      # 如本地 Embedding 换公网可访问地址
 EMBEDDING_MODEL=nomic-embed-text
 PROD_PORT=80                # 对外端口，如 80 被占改 8080

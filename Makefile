@@ -294,7 +294,7 @@ be-check:  ## 后端代码检查（ruff check + format 校验，覆盖 app/tests
 be-format:  ## 后端代码自动格式化（ruff format）
 	cd $(BACKEND_DIR) && $(UV) run ruff format app/ tests/ scripts/
 
-be-test:  ## 运行后端测试（需 Docker 已启动 + 存在 ai_learning_test 库）
+be-test:  ## 运行后端测试（需 Docker 已启动 + 存在 documind_test 库）
 	cd $(BACKEND_DIR) && $(UV) run pytest
 
 e2e:  ## 运行真实 HTTP 端到端验证（需 make start 已把服务拉起）

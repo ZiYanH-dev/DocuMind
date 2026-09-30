@@ -4,7 +4,7 @@ import os
 
 os.environ.setdefault(
     "DATABASE_URL",
-    "postgresql+psycopg2://ai_learning:ai_learning_123@localhost:5433/ai_learning_test",
+    "postgresql+psycopg2://documind:documind_123@localhost:5433/documind_test",
 )
 os.environ.setdefault("REDIS_URL", "redis://localhost:6380/1")
 # 测试环境允许缺失真实 LLM Key；ChatAPI 调用需真实 Key 或 mock（见测试说明）。
@@ -55,7 +55,7 @@ def _prepare_db() -> None:
             conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(
-            "无法连接测试数据库，请确认 docker 已启动且存在库 ai_learning_test"
+            "无法连接测试数据库，请确认 docker 已启动且存在库 documind_test"
         ) from exc
     Base.metadata.drop_all(ENGINE)
     Base.metadata.create_all(ENGINE)

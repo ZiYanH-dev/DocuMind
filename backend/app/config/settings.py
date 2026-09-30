@@ -50,9 +50,9 @@ class Settings(BaseSettings):
     # ===== 数据库（分字段，URL 由 resolved_database_url 推导）=====
     postgres_host: str = "localhost"
     postgres_port: int = 5433
-    postgres_user: str = "ai_learning"
-    postgres_password: str = "ai_learning_123"
-    postgres_db: str = "ai_learning"
+    postgres_user: str = "documind"
+    postgres_password: str = "documind_123"
+    postgres_db: str = "documind"
 
     # ===== Redis（分字段）=====
     redis_host: str = "localhost"

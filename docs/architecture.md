@@ -78,7 +78,7 @@ POST /api/v1/chat
 - [ ] 后端自测：`uv run pytest`（dev 依赖组），主链路集成测试见 `tests/test_main_flow.py`。
 
 ### 测试结构
-- `tests/conftest.py`：复用本地 PostgreSQL（docker 端口 5433）的测试库 `ai_learning_test`，会话级建表、用例级事务回滚，并覆盖 `get_db` 依赖注入测试会话。
+- `tests/conftest.py`：复用本地 PostgreSQL（docker 端口 5433）的测试库 `documind_test`，会话级建表、用例级事务回滚，并覆盖 `get_db` 依赖注入测试会话。
 - `tests/test_main_flow.py`：TestClient 集成测试，覆盖 注册→登录→文档上传/列表/删除→会话流程，验证统一 `ApiResponse` 信封与 Bearer 鉴权。
 - 文档上传为同步处理会真实调用 Embedding；跑通需配置可用 `LLM_API_KEY`（Embedding 缺省复用），或在测试中 mock `app.integrations.embedding_service`。
 

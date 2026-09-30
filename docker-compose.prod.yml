@@ -13,9 +13,9 @@ services:
   postgres:
     image: pgvector/pgvector:pg17
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-ai_learning}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ai_learning_123}
-      POSTGRES_DB: ${POSTGRES_DB:-ai_learning}
+      POSTGRES_USER: ${POSTGRES_USER:-documind}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-documind_123}
+      POSTGRES_DB: ${POSTGRES_DB:-documind}
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
     healthcheck:
@@ -47,9 +47,9 @@ services:
       SECRET_KEY: ${SECRET_KEY:?请设置 SECRET_KEY}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
-      POSTGRES_USER: ${POSTGRES_USER:-ai_learning}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ai_learning_123}
-      POSTGRES_DB: ${POSTGRES_DB:-ai_learning}
+      POSTGRES_USER: ${POSTGRES_USER:-documind}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-documind_123}
+      POSTGRES_DB: ${POSTGRES_DB:-documind}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_DB: "0"

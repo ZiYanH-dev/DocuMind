@@ -1,5 +1,5 @@
 [project]
-name = "ai-learning-backend"
+name = "documind-backend"
 version = "0.1.0"
 description = "DocuMind - 基于个人知识库的 RAG 智能问答系统"
 requires-python = ">=3.11"
