@@ -57,7 +57,8 @@ help:  ## 显示所有可用命令
 	@echo "  make be-status        📋 后端健康检查（HTTP /health + 端口）"
 	@echo "  make be-check         后端代码检查（ruff check + format --check）"
 	@echo "  make be-format        后端代码自动格式化（ruff format）"
-	@echo "  make be-test          运行后端测试（pytest）"
+	@echo "  make be-test          运行后端测试（需数据库）"
+	@echo "  make be-test-unit     只跑单元测试（不依赖数据库）"
 	@echo "  make be-shell         进入后端 Python 环境"
 	@echo "  make be-logs          📋 查看后端运行日志（tail -f）"
 	@echo ""
@@ -76,7 +77,7 @@ help:  ## 显示所有可用命令
 	@echo "  make ollama-pull      下载嵌入模型 ($(EMBEDDING_MODEL))"
 	@echo ""
 	@echo "🧪 测试:"
-	@echo "  make be-test          后端单元测试（pytest）"
+	@echo "  make be-test-unit     后端单元测试（不依赖数据库）"
 	@echo ""
 	@echo "🧹 工具:"
 	@echo "  make clean            清理临时文件"
@@ -279,7 +280,7 @@ wait-postgres-ready:  ## 🗄️ 轮询等待 PostgreSQL 就绪
 	fi
 
 # ===== 后端 =====
-.PHONY: be-install be-dev be-check be-format be-test e2e be-shell be-run be-logs
+.PHONY: be-install be-dev be-check be-format be-test be-test-unit be-test-cov e2e be-shell be-run be-logs
 
 be-install:  ## 安装后端依赖
 	cd $(BACKEND_DIR) && $(UV) sync
@@ -294,8 +295,14 @@ be-check:  ## 后端代码检查（ruff check + format 校验，覆盖 app/tests
 be-format:  ## 后端代码自动格式化（ruff format）
 	cd $(BACKEND_DIR) && $(UV) run ruff format app/ tests/ scripts/
 
-be-test:  ## 运行后端测试（需 Docker 已启动 + 存在 documind_test 库）
-	cd $(BACKEND_DIR) && $(UV) run pytest
+be-test:  ## 运行全部后端测试（需 Docker 已启动 + 存在 documind_test 库）
+	cd $(BACKEND_DIR) && $(UV) run python -m pytest
+
+be-test-unit:  ## 只跑单元测试（不依赖数据库与网络，随时可跑）
+	cd $(BACKEND_DIR) && $(UV) run python -m pytest -m unit
+
+be-test-cov:  ## 运行测试并输出覆盖率（标出未覆盖行号）
+	cd $(BACKEND_DIR) && $(UV) run python -m pytest --cov=app --cov-report=term-missing
 
 e2e:  ## 运行真实 HTTP 端到端验证（需 make start 已把服务拉起）
 	cd $(BACKEND_DIR) && $(UV) run python scripts/http_e2e.py

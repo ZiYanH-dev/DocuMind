@@ -55,10 +55,17 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-q"
 filterwarnings = ["ignore::DeprecationWarning"]
+markers = [
+    "unit: 纯逻辑测试，不依赖数据库与网络，任何时候都能跑",
+    "service: 服务层测试，用内存 Repository 替身，不需要数据库",
+    "http: HTTP 层测试，TestClient + 内存替身，不需要数据库",
+    "integration: 经 HTTP 走完整链路，需要 PostgreSQL",
+]
 
 [dependency-groups]
 dev = [
     "pytest>=8.2.0",
     "httpx>=0.27.0",
     "ruff>=0.6.0",
+    "pytest-cov>=7.1.0",
 ]
