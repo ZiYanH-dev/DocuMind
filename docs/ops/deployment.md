@@ -87,7 +87,8 @@ docker compose -f docker-compose.prod.yml logs -f backend
 
 ## 4. 数据库迁移
 
-迁移在 **backend 容器启动时自动执行**（Dockerfile CMD：`alembic upgrade head && uvicorn ...`），无需手动干预。
+迁移在 **backend 容器启动时自动执行**（Dockerfile CMD：
+- `alembic upgrade head && uvicorn ...`），无需手动干预。
 
 手动操作（手动跑迁移 / 回滚）：
 
@@ -137,8 +138,13 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ## 8. 待办（后续可补）
 
-- [ ] CI/CD：GitHub Actions 自动构建镜像 + 部署到服务器
-- [ ] TLS：nginx 挂证书（HTTPS）+ /api 走 wss
-- [ ] 健康检查：增加 backend `/health` 到 `healthcheck`
-- [ ] 上传后门：`UPLOAD_DIR` 卷定期备份
-- [ ] 日志汇集：docker 日志接入集中式日志（如 Loki / ELK）
+- [ ] CI/CD：
+	- GitHub Actions 自动构建镜像 + 部署到服务器
+- [ ] TLS：
+	- nginx 挂证书（HTTPS）+ /api 走 wss
+- [ ] 健康检查：
+	- 增加 backend `/health` 到 `healthcheck`
+- [ ] 上传后门：
+	- `UPLOAD_DIR` 卷定期备份
+- [ ] 日志汇集：
+	- docker 日志接入集中式日志（如 Loki / ELK）

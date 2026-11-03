@@ -1,7 +1,7 @@
 # 数据库表设计
 
-> 数据库：PostgreSQL 16 + pgvector 扩展
-> 迁移文件：`backend/alembic/versions/0001_initial_migration.py`
+> 数据库：PostgreSQL 17 + pgvector 扩展，镜像 `pgvector/pgvector:pg17`，宿主端口 5433
+> 迁移文件：`backend/alembic/versions/` 下 `0001_initial_migration.py` 建表，`0002_alter_embedding_dim.py` 把向量维度从 1536 改为 768
 
 ## 1. 实体关系（ER）
 
@@ -30,7 +30,8 @@ users (1) ───< (N) documents (1) ───< (N) document_chunks
 | created_at | TIMESTAMPTZ | NOT NULL, 默认 now() | 创建时间 |
 | updated_at | TIMESTAMPTZ | NOT NULL, 默认 now(), 更新时刷新 | 更新时间 |
 
-索引：`ix_users_username`、`ix_users_email`。
+索引：
+- `ix_users_username`、`ix_users_email`。
 
 ### 2.2 documents（文档）
 
@@ -40,7 +41,7 @@ users (1) ───< (N) documents (1) ───< (N) document_chunks
 | user_id | BIGINT | FK→users.id ON DELETE CASCADE, NOT NULL, INDEX | 归属用户 |
 | title | VARCHAR(255) | NOT NULL | 标题（默认取文件名去扩展名） |
 | file_name | VARCHAR(255) | NOT NULL | 原始文件名 |
-| file_path | VARCHAR(500) | NOT NULL | 服务器落盘路径 `{user.id}_{file_name}` |
+| file_path | VARCHAR(500) | NOT NULL | 服务器落盘路径 `{user_id}_{8位随机段}_{file_name}` |
 | file_size | BIGINT | NOT NULL | 字节数 |
 | file_type | VARCHAR(50) | NOT NULL | `pdf` / `docx` / `txt` |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'processing' | 处理状态（见下） |
@@ -48,8 +49,10 @@ users (1) ───< (N) documents (1) ───< (N) document_chunks
 | created_at | TIMESTAMPTZ | NOT NULL, 默认 now() | 创建时间 |
 | updated_at | TIMESTAMPTZ | NOT NULL, 默认 now(), 更新时刷新 | 更新时间 |
 
-`status` 取值：`processing`（处理中） / `completed`（完成） / `failed`（失败）。
-索引：`ix_documents_user_id`。
+`status` 取值：
+- `processing`（处理中） / `completed`（完成） / `failed`（失败）。
+索引：
+- `ix_documents_user_id`。
 
 ### 2.3 document_chunks（文档分块 / 向量）
 
@@ -59,13 +62,17 @@ users (1) ───< (N) documents (1) ───< (N) document_chunks
 | document_id | BIGINT | FK→documents.id ON DELETE CASCADE, NOT NULL, INDEX | 所属文档 |
 | chunk_index | INTEGER | NOT NULL | 分块序号 |
 | content | TEXT | NOT NULL | 分块文本 |
-| embedding | VECTOR(1536) | NULL | 文本向量（维度需与 `EMBEDDING_DIM` 一致） |
+| embedding | VECTOR(768) | NULL | 文本向量，维度必须与 `settings.embedding_dim` 一致 |
 | created_at | TIMESTAMPTZ | NOT NULL, 默认 now() | 创建时间 |
 
-索引：`ix_document_chunks_document_id`；向量索引 `ix_document_chunks_embedding`（IVFFlat，`vector_cosine_ops`，`lists=100`）。
-级联：`documents` 删除时本表随 `ON DELETE CASCADE` 一并删除。
+索引：
+- `ix_document_chunks_document_id`；
+- 向量索引 `ix_document_chunks_embedding`（IVFFlat，`vector_cosine_ops`，`lists=100`）。
+级联：
+- `documents` 删除时本表随 `ON DELETE CASCADE` 一并删除。
 
-> 分块参数：`chunk_size=800`、`chunk_overlap=100`（见 `app/core/config.py`）。
+> 分块参数：`chunk_size=800`、`chunk_overlap=100`，配置在 `backend/app/config/app.yaml` 的 `parser` 段。
+> 落盘名带 8 位随机段，是为了同名文件重复上传时各占一个文件，删除其中一条不会连带删掉另一条的源文件。
 
 ### 2.4 conversations（会话）
 
@@ -77,7 +84,8 @@ users (1) ───< (N) documents (1) ───< (N) document_chunks
 | created_at | TIMESTAMPTZ | NOT NULL, 默认 now() | 创建时间 |
 | updated_at | TIMESTAMPTZ | NOT NULL, 默认 now(), 更新时刷新 | 更新时间 |
 
-索引：`ix_conversations_user_id`。
+索引：
+- `ix_conversations_user_id`。
 
 ### 2.5 messages（消息）
 
@@ -90,14 +98,22 @@ users (1) ───< (N) documents (1) ───< (N) document_chunks
 | sources | JSONB | NULL | 引用来源（数组，结构见 `SourceInfo`） |
 | created_at | TIMESTAMPTZ | NOT NULL, 默认 now() | 创建时间 |
 
-索引：`ix_messages_conversation_id`。级联：`conversations` 删除时消息一并删除。
+索引：
+- `ix_messages_conversation_id`。
+- 级联：`conversations` 删除时消息一并删除。
 
-## 3. 向量检索说明
+## 3. 向量检索在表层面的约束
 
-- 使用 pgvector `<=>` 算子计算**余弦距离**，并以 `1 - 距离` 作为相似度 `score`。
-- 检索 SQL（`ChunkRepository.vector_search`）：`JOIN documents` 后 `WHERE d.user_id = :user_id` 保证**仅检索当前用户文档**，按距离升序取 `top_k`。
-- 业务侧二次过滤：`score >= vector_score_threshold`（默认 0.3）才视为有效上下文；若无有效片段，回答告知"知识库中没有找到相关内容"。
-- 向量维度必须与 `EMBEDDING_DIM`（默认 1536，对应 `text-embedding-3-small`）保持一致，否则插入会报错。切换 embedding 模型需同步重建索引与重算向量。
+- 使用 pgvector `<=>` 算子计算**余弦距离**，再取 `1 - 距离` 作为相似度 `score`。
+- 检索 SQL 在 `ChunkRepository.vector_search`：
+	- `JOIN documents` 后 `WHERE documents.user_id = :user_id`，保证只检索当前用户的文档；
+	- 相似度阈值在 SQL 层过滤，不通过的片段不进结果集；
+	- 按距离升序取前 `vector_recall_k` 条，不是最终条数。
+- 这一路只是检索的其中一路，融合与重排见 [ai/retrieval.md](./ai/retrieval.md)。
+- 向量维度必须与 `settings.embedding_dim` 一致，默认 768，配置在 `app.yaml` 的 `embedding.dim`。
+维度与列定义不一致时插入直接报错。
+- 换 embedding 模型要重算全部存量向量，否则新旧向量不可比。
+pgvector 不支持直接改列维度，需要像 `0002` 那样用 `USING embedding::vector(N)` 重建列。
 
 ## 4. 级联删除一览
 
@@ -107,3 +123,5 @@ users (1) ───< (N) documents (1) ───< (N) document_chunks
 | users | conversations | CASCADE |
 | documents | document_chunks | CASCADE |
 | conversations | messages | CASCADE |
+
+删除文档只删记录不够：源文件与三类缓存也要一起清理，见 [ai/indexing.md](./ai/indexing.md) 第 5 节。
