@@ -18,9 +18,9 @@ from app.core.logger import logger
 
 # ── key 命名空间 ──────────────────────────────────────────────
 
-HISTORY_PREFIX: str = "study:history"
-RETRIEVAL_PREFIX: str = "study:retrieval"
-DOCUMENT_LIST_PREFIX: str = "study:document:list"
+HISTORY_PREFIX: str = "documind:history"
+RETRIEVAL_PREFIX: str = "documind:retrieval"
+DOCUMENT_LIST_PREFIX: str = "documind:document:list"
 
 # ── 过期时间（秒）─────────────────────────────────────────────
 
