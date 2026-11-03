@@ -1,0 +1,119 @@
+# CI：push 到 main 与提 PR 时校验后端与前端。
+# 只做校验，不推送镜像、不部署，因此不含 CD 步骤。
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: 后端校验
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: documind
+          POSTGRES_PASSWORD: documind_123
+          POSTGRES_DB: documind_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U documind -d documind_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:6-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # 与 backend/app/config/settings.py 的分字段一一对应，连接串由它拼接。
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5433"
+      POSTGRES_USER: documind
+      POSTGRES_PASSWORD: documind_123
+      POSTGRES_DB: documind_test
+      REDIS_HOST: localhost
+      REDIS_PORT: "6380"
+      REDIS_DB: "1"
+      APP_ENV: test
+      SECRET_KEY: ci-secret-key-not-for-production
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 运行镜像基于 python:3.11-slim，CI 用同一大版本，避免差异留到生产才暴露。
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: 安装依赖
+        run: uv sync --frozen
+
+      - name: 静态检查
+        run: uv run ruff check app/ tests/ scripts/
+
+      - name: 格式检查
+        run: uv run ruff format --check app/ tests/ scripts/
+
+      # 先跑迁移再跑测试。数据库连不上时这一步直接失败，
+      # 不会出现集成用例被 skip 而整条流水线仍显示通过的情况。
+      - name: 执行数据库迁移
+        run: uv run alembic upgrade head
+
+      - name: 运行测试
+        run: uv run pytest
+
+  frontend:
+    name: 前端校验
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # frontend/package.json 没有 packageManager 字段，版本在此显式指定。
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # build 脚本为 vue-tsc -b && vite build，类型检查已包含在内。
+      - name: 类型检查与构建
+        run: pnpm build
